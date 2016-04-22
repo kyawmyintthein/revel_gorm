@@ -217,8 +217,9 @@ func GetStruct(structname, fields string) (string, error) {
 		return "", errors.New("fields can't empty")
 	}
 	structStr := "type " + structname + " struct{\n"
+	structStr += "gorm.Model\n"
 	fds := strings.Split(fields, ",")
-	for i, v := range fds {
+	for _, v := range fds {
 		kv := strings.SplitN(v, ":", 2)
 		if len(kv) != 2 {
 			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
@@ -227,13 +228,8 @@ func GetStruct(structname, fields string) (string, error) {
 		if typ == "" {
 			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
 		}
-		if i == 0 && strings.ToLower(kv[0]) != "id" {
-			structStr = structStr + "ID     bson.ObjectId     `json:\"id\" bson:\"_id\"`\n"
-		}
-		structStr = structStr + camelString(kv[0]) + "       " + typ + "     " + "`json:\"" + kv[0] + "\" bson:\"" + kv[0]+ "\"`\n"
+		structStr = structStr + camelString(kv[0]) + "       " + typ + "     " + "`json:\"" + kv[0] + "\" gorm:\"column:" + kv[0]+ "\"`\n"
 	}
-	structStr = structStr + "CreatedAt" + "       " + "time.Time" + "     " + "`json:\"created_at\" bson:\"created_at\"`\n"
-	structStr = structStr + "UpdatedAt" + "       " + "time.Time" + "     " + "`json:\"updated_at\" bson:\"updated_at\"`\n"
 	structStr += "}\n"
 	return structStr, nil
 }

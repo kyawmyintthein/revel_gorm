@@ -106,7 +106,7 @@ host = 127.0.0.1
 port = 3306
 
 
-[pro]
+[prod]
 driver: mysql
 encoding: utf8
 database: {{dbName}}
@@ -138,7 +138,7 @@ maxIdle = 30
 timeout: 5000
 
 
-[pro]
+[prod]
 driver: sqlite3
 database: db/{{dbName}}.sqlite3
 maxConn = 30
@@ -155,7 +155,7 @@ timeout: 5000`
 		
 var postgresDatabaseConfigTpl =  
 `[dev]
-driver: postgresql
+driver: postgres
 encoding: unicode
 database: {{dbName}}_dev
 maxConn = 30
@@ -164,8 +164,8 @@ username: root
 password:
 
 
-[pro]
-driver: postgresql
+[prod]
+driver: postgres
 encoding: unicode
 database: {{dbName}}
 maxConn = 30
@@ -175,7 +175,7 @@ password:
 
 
 [test]
-driver: postgresql
+driver: postgres
 encoding: unicode
 database: {{dbName}}_test
 maxConn = 30
