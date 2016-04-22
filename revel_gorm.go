@@ -32,6 +32,7 @@ func (cmd *Command) Name() string {
 }
 
 var commands = []*Command{
+	cmdDBConfig,
 	cmdDBSetup,
 }
 
