@@ -10,11 +10,9 @@ import(
 
 var cmdDBSetup = &Command{
 	UsageLine: "db:setup",
-	Short:     "create new config for Revel application",
+	Short:     "setup database based on database.conf for Revel application",
 	Long: `
-Create new database.conf file in app/conf of your application.
-
-It puts all necessary files as import. 
+Based on database.conf config. It puts all necessary files as import. 
 
 --driver is required. The configuration will be changed based on --driver parameter.
 
@@ -23,7 +21,7 @@ For example:
 `,
 }
 
-var mysqlDBTplStr = `package database
+var mysqlDatabaseTpl = `package {{packageName}}
 import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -31,6 +29,11 @@ import (
 
 var (
 	DB gorm.DB
+	Driver string
+	Database string
+	User  string
+	Password  string
+	Charset  string
 )
 
 func init() {
@@ -38,70 +41,127 @@ func init() {
 		sqlConn string
 		err     error
 	)
-	sqlConn =  "{{username}}:{{password}}@/{{dbName}}?charset=utf8&parseTime=True"
-	if DB, err = gorm.Open("mysql", sqlConn); err != nil{
+	sqlConn =  User + ":" + Password + "@/" + Database + "?charset=" + Charset+ "&parseTime=True"
+	DB, err = gorm.Open("mysql", sqlConn)
+	if err != nil{
 		panic(err.Error())
 	}
 	DB.LogMode(true)
 }
 `
+
+var postgresqlDatabseTpl = `package {{packageName}}
+
+import (  
+ 	"github.com/jinzhu/gorm"
+ 	_ "github.com/lib/pq"
+)
+
+var (
+	DB gorm.DB
+	Driver string
+	Database string
+	User  string
+)
+
+func init() {  
+	var err error
+    DB, err :=  gorm.Open(Driver, "user=" + User + " sslmode=disable"){
+    if err != nil{
+    	panic(err.Error())
+    }
+
+    db.LogMode(true)
+}
+`
+
+var sqliteDatabseTpl = `package {{packageName}}
+
+import (  
+    "github.com/jinzhu/gorm"
+    _ "github.com/mattn/go-sqlite3"
+)
+
+var (
+	DB gorm.DB
+	Driver string
+	Database string
+)
+
+func init() {  
+	var err error
+    DB, err := gorm.Open(Driver, Database)  
+    if err != nil{
+    	panic(err.Error())
+    }
+    db.LogMode(true)
+}`
+
+
 func init() {
 	cmdDBSetup.Run = dbSetup
 }
 
 func dbSetup(cmd *Command, args []string) {
+
+	// get $GOPATH
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		ColorLog("$GOPATH not found.\nRun 'revel help db' for usage.\n")
+		ColorLog("[ERRO] $GOPATH not found.\nRun 'revel help db' for usage.\n")
 		os.Exit(2)
 	}
 
-	// Determine the run mode.
-	mode := "dev"
-	if len(args) >= 2 {
-		mode = args[1]
-	}
-
+	// get curret folder
 	pwd, _ := os.Getwd()
 
-	config, err := config.ReadDefault(path.Join(pwd, "conf", "database.conf"))
+	// check config
+	configPath := path.Join(pwd, "conf", "database.conf")
+	config, err := config.ReadDefault(configPath)
 	if err != nil || config == nil {
-		log.Fatalln("Failed to load database.conf:", err)
+		ColorLog("[ERRO] database.conf not found in conf '%s'.\n", err)
+		os.Exit(2)
 	}
+	ColorLog("[SUCC] '%s' is using as database config file.\n",configPath)
 
 	databaseFolder := path.Join(pwd, "app", "models", "database")
 	databaseFile := path.Join(databaseFolder, "database.go")
+
+	//create database folder under models path
 	if _, err := os.Stat(databaseFolder); os.IsNotExist(err) {
-		// path/to/whatever does not exist
 		os.MkdirAll(databaseFolder, 0777)
 	}
 
+	// generate files
 	if _, err := os.Stat(databaseFile); !os.IsNotExist(err) {
 		if err = os.Remove(databaseFile); err != nil{
-			log.Fatalln("Failed to remove existing file database.go:", err)
+			ColorLog("[ERRO] database.go is already exist. '%s'\n", err)
+			os.Exit(2)
 		}
 	}
 	if file, err := os.OpenFile(databaseFile, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0666); err == nil {
 		defer file.Close()
-			user,_ :=  config.String(mode, "user");
-			password, _ :=  config.String(mode, "password");
-			dbName, _ :=  config.String(mode, "name");
-			driverType, _ :=  config.String(mode, "driver");
-
+			driverType, _ :=  config.String("dev", "driver");
+			ColorLog("[SUCC] '%s' is using as database driver.\n",driverType)
 			switch driverType {
 		    case "mysql":
-		      	content := strings.Replace(mysqlDBTplStr, "{{username}}",user, -1)
-				content = strings.Replace(content, "{{password}}",password, -1)
-				content = strings.Replace(content, "{{dbName}}", dbName, -1)
+		      	content := strings.Replace(mysqlDatabaseTpl, "{{packageName}}","database", -1)
+				file.WriteString(content)
+			case "sqlite3":
+		      	content := strings.Replace(sqliteDatabseTpl, "{{packageName}}","database", -1)
+				file.WriteString(content)
+			case "postgresql":
+		      	content := strings.Replace(postgresqlDatabseTpl, "{{packageName}}","database", -1)
 				file.WriteString(content)
 			default: 
-				ColorLog("datbase driver not found.\nRun 'revel help db' for usage.\n")
+				ColorLog("[ERRO] datbase driver not found.\nRun 'revel_gorm help' for usage.\n")
 				os.Exit(2)
 		    }
 	} else {
 		log.Println(err)
-		ColorLog("Missing database.go.\nRun 'revel help db' for usage.\n")
+		ColorLog("[ERRO] Missing database.go.\nRun 'revel_gorm help' for usage.\n")
 		os.Exit(2)
 	}	
+
+	ColorLog("[SUCC] database file is generated as '%s'.\n",databaseFile)
     
 }
