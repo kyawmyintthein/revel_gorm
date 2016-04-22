@@ -35,6 +35,7 @@ var commands = []*Command{
 	cmdDBConfig,
 	cmdDBSetup,
 	cmdGenerate,
+	cmdDelete,
 }
 
 func init() {

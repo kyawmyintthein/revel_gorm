@@ -7,7 +7,7 @@ import(
 )
 
 // generate controller
-func generateController(cname, crupath string) {
+func generateRestController(cname, crupath string) {
 	// get controller name and package 
 	p, f := path.Split(cname)
 
@@ -76,6 +76,93 @@ func generateController(cname, crupath string) {
 		content = strings.Replace(content, "{{modelsPkg}}", modelsPkg, -1)
 		content = strings.Replace(content, "{{controllerStruct}}", controllerStruct, -1)
 		content = strings.Replace(content, "{{contorllerStructName}}", controllerName + "Controller", -1)
+		content = strings.Replace(content, "{{modelObjects}}", strings.ToLower(controllerName+"s"), -1)
+		content = strings.Replace(content, "{{modelObject}}", strings.ToLower(controllerName), -1)
+		content = strings.Replace(content, "{{modelStruct}}", controllerName, -1)
+		content = strings.Replace(content, "{{modelStructs}}", controllerName + "s", -1)
+		
+		
+		f.WriteString(content)
+		// gofmt generated source code
+		FormatSourceCode(fpath)
+		ColorLog("[INFO] model file generated: %s\n", fpath)
+	} else {
+		// error creating file
+		ColorLog("[ERRO] Could not create controller file: %s\n", err)
+		os.Exit(2)
+	}
+}
+
+// generate controller
+func generateController(cname, crupath string) {
+	// get controller name and package 
+	p, f := path.Split(cname)
+
+	// set controller name to uppercase
+	controllerName := strings.Title(f)
+
+	//set default package
+	packageName := "controllers"
+	if p != "" {
+		i := strings.LastIndex(p[:len(p)-1], "/")
+		packageName = p[i+1 : len(p)-1]
+	}
+
+	// get struct for controller 
+	controllerStruct, err := GetControllerStruct(controllerName)
+	if err != nil {
+		ColorLog("[ERRO] Could not genrate controllers struct: %s\n", err)
+		os.Exit(2)
+	}
+
+	ColorLog("[INFO] Using '%s' as controller name\n", controllerName)
+	ColorLog("[INFO] Using '%s' as package name\n", packageName)
+
+	// create controller folders
+	filePath := path.Join(crupath ,"app", "controllers", p)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		// create controller directory
+		if err := os.MkdirAll(filePath, 0777); err != nil {
+			ColorLog("[ERRO] Could not create controllers directory: %s\n", err)
+			os.Exit(2)
+		}
+	}
+
+	// create common controller.go
+	commonCtrFp := path.Join(crupath, "app", "controllers", "controller.go")
+	if _, err := os.Stat(commonCtrFp); os.IsNotExist(err) {
+		if cf, err := os.OpenFile(commonCtrFp, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0666); err == nil {
+			defer cf.Close()	
+			content := strings.Replace(commonTpl, "{{packageName}}", packageName, -1)		
+			cf.WriteString(content)
+			// gofmt generated source code
+			FormatSourceCode(commonCtrFp)
+			ColorLog("[INFO] controller file generated: %s\n", commonCtrFp)
+		} else {
+			// error creating file
+			ColorLog("[ERRO] Could not create controller file: %s\n", err)
+			os.Exit(2)
+		}
+	}
+
+	mPath := path.Join(crupath, "app", "models", strings.ToLower(controllerName)+".go")
+	if _, err := os.Stat(mPath); os.IsNotExist(err) {
+		ColorLog("[ERRO] Could not find model file: %s\n", err)
+		os.Exit(2)
+	}
+	// create controller file
+	fpath := path.Join(filePath, strings.ToLower(controllerName)+".go")
+	if f, err := os.OpenFile(fpath, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0666); err == nil {
+		defer f.Close()
+
+		paths := strings.Split(crupath, "/")
+		projectName := paths[len(paths) - 1:][0]
+		modelsPkg := path.Join(projectName, "app", "models")
+
+		content := strings.Replace(controllerTpl, "{{packageName}}", packageName, -1)
+		content = strings.Replace(content, "{{modelsPkg}}", modelsPkg, -1)
+		content = strings.Replace(content, "{{controllerStruct}}", controllerStruct, -1)
+		content = strings.Replace(content, "{{contorllerStructName}}", controllerName, -1)
 		content = strings.Replace(content, "{{modelObjects}}", strings.ToLower(controllerName+"s"), -1)
 		content = strings.Replace(content, "{{modelObject}}", strings.ToLower(controllerName), -1)
 		content = strings.Replace(content, "{{modelStruct}}", controllerName, -1)

@@ -47,6 +47,34 @@ func generateCode(cmd *Command, args []string){
 
 	gcmd := args[0]
 	switch gcmd {
+	case "api-scaffold":
+		if len(args) < 2 {
+			ColorLog("[ERRO] Wrong number of arguments\n")
+			ColorLog("[HINT] Usage: revel_mgo generate scaffold [modelname] [-fields=\"\"]\n")
+			os.Exit(2)
+		}
+		cmd.Flag.Parse(args[2:])
+		if fields == "" {
+			ColorLog("[ERRO] Wrong number of arguments\n")
+			ColorLog("[HINT] Usage: bee generate scaffold [modelname] [-fields=\"title:string,body:text\"]\n")
+			os.Exit(2)
+		}
+		sname := args[1]
+		ColorLog("[INFO] Using '%s' as controller name\n", sname)
+		ColorLog("[INFO] Using '%s' as controller name\n", sname + "Controller")
+
+		//generate model and controller
+		generateModel(sname, fields.String(), curpath)
+		generateRestController(sname, curpath)
+	case "api-controller":
+		if len(args) == 2 {
+			cname := args[1]
+			generateRestController(cname, curpath)
+		} else {
+			ColorLog("[ERRO] Wrong number of arguments\n")
+			ColorLog("[HINT] Usage: revel_mgo generate controller [controllername]\n")
+			os.Exit(2)
+		}
 	case "scaffold":
 		if len(args) < 2 {
 			ColorLog("[ERRO] Wrong number of arguments\n")
@@ -89,6 +117,20 @@ func generateCode(cmd *Command, args []string){
 		}
 		sname := args[1]
 		generateModel(sname, fields.String(), curpath)
+	case "views":
+		if len(args) < 2 {
+			ColorLog("[ERRO] Wrong number of arguments\n")
+			ColorLog("[HINT] Usage: revel_mgo generate model [modelname] [-fields=\"\"]\n")
+			os.Exit(2)
+		}
+		cmd.Flag.Parse(args[2:])
+		if fields == "" {
+			ColorLog("[ERRO] Wrong number of arguments\n")
+			ColorLog("[HINT] Usage: revel_mgo generate model [modelname] [-fields=title:string,body:string]\n")
+			os.Exit(2)
+		}
+		sname := args[1]
+		generateViews(sname, fields.String(), curpath)
 	default:
 		ColorLog("[ERRO] command is missing\n")
 		os.Exit(2)

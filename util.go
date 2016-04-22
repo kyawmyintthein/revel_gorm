@@ -206,7 +206,7 @@ func empty(dirname string) bool {
 }
 
 func GetControllerStruct(controllerName string) (string, error){
-	controllerStr := "type " + controllerName +"Controller" + " struct{\n"
+	controllerStr := "type " + controllerName + " struct{\n"
 	controllerStr += " *revel.Controller\n"
 	controllerStr += "}\n"
 	return controllerStr, nil
@@ -231,6 +231,56 @@ func GetStruct(structname, fields string) (string, error) {
 		structStr = structStr + camelString(kv[0]) + "       " + typ + "     " + "`json:\"" + kv[0] + "\" gorm:\"column:" + kv[0]+ "\"`\n"
 	}
 	structStr += "}\n"
+	return structStr, nil
+}
+
+func GetTableHeaders(structname, fields string) (string, error) {
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+	fds := strings.Split(fields, ",")
+	structStr := "<th>#</th>\n"
+	for _, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}		
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+		structStr += "<th> " + camelString(kv[0]) + "</th>\n"
+	}
+	structStr += "<th colspan=\"3\"></th>\n<th></th>\n<th></th>"
+	return structStr, nil
+}
+
+func GetTableBody(structname, fields string) (string, error) {
+	var id string
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+	fds := strings.Split(fields, ",")
+	structStr := "{{range ." + strings.ToLower(structname) + "s}}\n<tr>\n<td>#</td>\n"
+	for _, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}		
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+		if kv[0] == "id"{
+			id = kv[0]
+		}else{
+			structStr += "<td> {{." + camelString(kv[0]) + "}} </td>\n"
+		}
+		
+	}
+	structStr += "<td><a href=\"{{url \"" + camelString(structname) + "s" + ".Show " + id + "\"}}\"> Show </a></td>\n"
+	structStr += "<td><a href=\"{{url \"" + camelString(structname) + "s" + ".Edit " + id + "\"}}\"> Show </a></td>\n"
+	structStr += "<td><a href=\"{{url \"" + camelString(structname) + "s" + ".Delete " + id + "\"}}\"> Show </a></td>\n<tr>\n{{end}}\n"
 	return structStr, nil
 }
 
