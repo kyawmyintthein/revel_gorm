@@ -52,7 +52,7 @@ func init() {
 func dbSetup(cmd *Command, args []string) {
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
-		errorf("$GOPATH not found.\nRun 'revel help db' for usage.\n")
+		ColorLog("$GOPATH not found.\nRun 'revel help db' for usage.\n")
 		os.Exit(2)
 	}
 
@@ -95,11 +95,13 @@ func dbSetup(cmd *Command, args []string) {
 				content = strings.Replace(content, "{{dbName}}", dbName, -1)
 				file.WriteString(content)
 			default: 
-				errorf("datbase driver not found.\nRun 'revel help db' for usage.\n")
+				ColorLog("datbase driver not found.\nRun 'revel help db' for usage.\n")
+				os.Exit(2)
 		    }
 	} else {
 		log.Println(err)
-		errorf("Missing database.go.\nRun 'revel help db' for usage.\n")
+		ColorLog("Missing database.go.\nRun 'revel help db' for usage.\n")
+		os.Exit(2)
 	}	
     
 }

@@ -5,13 +5,50 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"runtime"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
+	"errors"
+	"time"
+	"os/exec"
 	"github.com/revel/revel"
 )
+
+// if os.env DEBUG set, debug is on
+func Debugf(format string, a ...interface{}) {
+	if os.Getenv("DEBUG") != "" {
+		_, file, line, ok := runtime.Caller(1)
+		if !ok {
+			file = "<unknown>"
+			line = -1
+		} else {
+			file = filepath.Base(file)
+		}
+		fmt.Fprintf(os.Stderr, fmt.Sprintf("[debug] %s:%d %s\n", file, line, format), a...)
+	}
+}
+
+
+const (
+	Gray = uint8(iota + 90)
+	Red
+	Green
+	Yellow
+	Blue
+	Magenta
+	//NRed      = uint8(31) // Normal
+	EndColor = "\033[0m"
+
+	INFO = "INFO"
+	TRAC = "TRAC"
+	ERRO = "ERRO"
+	WARN = "WARN"
+	SUCC = "SUCC"
+)
+
 
 // Use a wrapper to differentiate logged panics from unexpected ones.
 type LoggedError struct{ error }
@@ -161,11 +198,216 @@ func exists(path string) (bool, error) {
 func empty(dirname string) bool {
 	dir, err := os.Open(dirname)
 	if err != nil {
-		errorf("error opening directory: %s", err)
+		ColorLog("[ERRO]error opening directory: %s", err)
 	}
 	defer dir.Close()
 	results, _ := dir.Readdir(1)
 	return len(results) == 0
+}
+
+func GetControllerStruct(controllerName string) (string, error){
+	controllerStr := "type " + controllerName +"Controller" + " struct{\n"
+	controllerStr += " *revel.Controller\n"
+	controllerStr += "}\n"
+	return controllerStr, nil
+}
+
+func GetStruct(structname, fields string) (string, error) {
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+	structStr := "type " + structname + " struct{\n"
+	fds := strings.Split(fields, ",")
+	for i, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}		
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+		if i == 0 && strings.ToLower(kv[0]) != "id" {
+			structStr = structStr + "ID     bson.ObjectId     `json:\"id\" bson:\"_id\"`\n"
+		}
+		structStr = structStr + camelString(kv[0]) + "       " + typ + "     " + "`json:\"" + kv[0] + "\" bson:\"" + kv[0]+ "\"`\n"
+	}
+	structStr = structStr + "CreatedAt" + "       " + "time.Time" + "     " + "`json:\"created_at\" bson:\"created_at\"`\n"
+	structStr = structStr + "UpdatedAt" + "       " + "time.Time" + "     " + "`json:\"updated_at\" bson:\"updated_at\"`\n"
+	structStr += "}\n"
+	return structStr, nil
+}
+
+func GetAttrs(fields string) (string, error) {
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+	//bson.M{"location": outlet.Location}
+	structStr := "bson.M{\n"
+	fds := strings.Split(fields, ",")
+	for _, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type;key:type " + v)
+		}
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type;key:type " + v)
+		}
+		structStr = structStr + "\"" + kv[0] + "\": " + "m." + camelString(kv[0]) + ","
+	}
+	structStr += "\"updatedAt\": " + "time.Now(),"
+	structStr += "},\n"
+	return structStr, nil
+}
+
+func camelString(s string) string {
+	data := make([]byte, 0, len(s))
+	j := false
+	k := false
+	num := len(s) - 1
+	for i := 0; i <= num; i++ {
+		d := s[i]
+		if k == false && d >= 'A' && d <= 'Z' {
+			k = true
+		}
+		if d >= 'a' && d <= 'z' && (j || k == false) {
+			d = d - 32
+			j = false
+			k = true
+		}
+		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
+			j = true
+			continue
+		}
+		data = append(data, d)
+	}
+	return string(data[:len(data)])
+}
+
+
+// fields support type
+func getType(ktype string) string {
+	kv := strings.SplitN(ktype, ":", 2)
+	switch kv[0] {
+	case "string":
+		if len(kv) == 2 {
+			return "string"
+		} else {
+			return "string"
+		}
+	case "datetime":
+		return "time.Time"
+	case "int", "int8", "int16", "int32", "int64":
+		fallthrough
+	case "uint", "uint8", "uint16", "uint32", "uint64":
+		fallthrough
+	case "bool":
+		fallthrough
+	case "float32", "float64":
+		return kv[0]
+	case "float":
+		return "float64"
+	}
+	return ""
+}
+
+// ColorLog colors log and print to stdout.
+// See color rules in function 'ColorLogS'.
+func ColorLog(format string, a ...interface{}) {
+	fmt.Print(ColorLogS(format, a...))
+}
+
+// ColorLogS colors log and return colored content.
+// Log format: <level> <content [highlight][path]> [ error ].
+// Level: TRAC -> blue; ERRO -> red; WARN -> Magenta; SUCC -> green; others -> default.
+// Content: default; path: yellow; error -> red.
+// Level has to be surrounded by "[" and "]".
+// Highlights have to be surrounded by "# " and " #"(space), "#" will be deleted.
+// Paths have to be surrounded by "( " and " )"(space).
+// Errors have to be surrounded by "[ " and " ]"(space).
+// Note: it hasn't support windows yet, contribute is welcome.
+func ColorLogS(format string, a ...interface{}) string {
+	log := fmt.Sprintf(format, a...)
+
+	var clog string
+
+	if runtime.GOOS != "windows" {
+		// Level.
+		i := strings.Index(log, "]")
+		if log[0] == '[' && i > -1 {
+			clog += "[" + getColorLevel(log[1:i]) + "]"
+		}
+
+		log = log[i+1:]
+
+		// Error.
+		log = strings.Replace(log, "[ ", fmt.Sprintf("[\033[%dm", Red), -1)
+		log = strings.Replace(log, " ]", EndColor+"]", -1)
+
+		// Path.
+		log = strings.Replace(log, "( ", fmt.Sprintf("(\033[%dm", Yellow), -1)
+		log = strings.Replace(log, " )", EndColor+")", -1)
+
+		// Highlights.
+		log = strings.Replace(log, "# ", fmt.Sprintf("\033[%dm", Gray), -1)
+		log = strings.Replace(log, " #", EndColor, -1)
+
+		log = clog + log
+
+	} else {
+		// Level.
+		i := strings.Index(log, "]")
+		if log[0] == '[' && i > -1 {
+			clog += "[" + log[1:i] + "]"
+		}
+
+		log = log[i+1:]
+
+		// Error.
+		log = strings.Replace(log, "[ ", "[", -1)
+		log = strings.Replace(log, " ]", "]", -1)
+
+		// Path.
+		log = strings.Replace(log, "( ", "(", -1)
+		log = strings.Replace(log, " )", ")", -1)
+
+		// Highlights.
+		log = strings.Replace(log, "# ", "", -1)
+		log = strings.Replace(log, " #", "", -1)
+
+		log = clog + log
+	}
+
+	return time.Now().Format("2006/01/02 15:04:05 ") + log
+}
+
+// getColorLevel returns colored level string by given level.
+func getColorLevel(level string) string {
+	level = strings.ToUpper(level)
+	switch level {
+	case INFO:
+		return fmt.Sprintf("\033[%dm%s\033[0m", Blue, level)
+	case TRAC:
+		return fmt.Sprintf("\033[%dm%s\033[0m", Blue, level)
+	case ERRO:
+		return fmt.Sprintf("\033[%dm%s\033[0m", Red, level)
+	case WARN:
+		return fmt.Sprintf("\033[%dm%s\033[0m", Magenta, level)
+	case SUCC:
+		return fmt.Sprintf("\033[%dm%s\033[0m", Green, level)
+	default:
+		return level
+	}
+	return level
+}
+
+// formatSourceCode formats source files
+func FormatSourceCode(filename string) {
+	cmd := exec.Command("gofmt", "-w", filename)
+	if err := cmd.Run(); err != nil {
+		ColorLog("[WARN] gofmt err: %s\n", err)
+	}
 }
 
 

@@ -14,17 +14,6 @@ import (
 	"time"
 )
 
-type flagValue string
-
-func (d *flagValue) String() string {
-	return fmt.Sprint(*d)
-}
-
-func (d *flagValue) Set(value string) error {
-	*d = flagValue(value)
-	return nil
-}
-
 // Cribbed from the genius organization of the "go" command.
 type Command struct {
 	Run func(cmd *Command, args []string)
@@ -43,8 +32,11 @@ func (cmd *Command) Name() string {
 }
 
 var commands = []*Command{
-	cmdDBConfig,
 	cmdDBSetup,
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func main() {
@@ -90,35 +82,9 @@ func main() {
 		}
 	}
 
-	errorf("unknown command %q\nRun 'revel help' for usage.\n", args[0])
+	ColorLog("[ERRO] unknown command %q\nRun 'revel help' for usage.\n", args[0])
+	os.Exit(2)
 }
-
-func errorf(format string, args ...interface{}) {
-	// Ensure the user's command prompt starts on the next line.
-	if !strings.HasSuffix(format, "\n") {
-		format += "\n"
-	}
-	fmt.Fprintf(os.Stderr, format, args...)
-	panic(LoggedError{}) // Panic instead of os.Exit so that deferred will run.
-}
-
-const header = `~
-~ revel! http://revel.github.io
-~
-`
-
-const usageTemplate = `usage: revel command [arguments]
-
-The commands are:
-{{range .}}
-    {{.Name | printf "%-11s"}} {{.Short}}{{end}}
-
-Use "revel help [command]" for more information.
-`
-
-var helpTemplate = `usage: revel {{.UsageLine}}
-{{.Long}}
-`
 
 func usage(exitCode int) {
 	tmpl(os.Stderr, usageTemplate, commands)
@@ -133,6 +99,26 @@ func tmpl(w io.Writer, text string, data interface{}) {
 	}
 }
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
+
+
+// templates
+const header = `~
+~ revel_gorm! https://github.com/kyawmyintthein/revel_gorm
+~
+`
+
+
+const usageTemplate = `usage: revel_gorm command [arguments]
+
+The commands are:
+{{range .}}
+    {{.Name | printf "%-11s"}} {{.Short}}{{end}}
+
+Use "revel_gorm help [command]" for more information.
+`
+
+
+var helpTemplate = `usage: revel_gorm {{.UsageLine}}
+{{.Long}}
+`
+
