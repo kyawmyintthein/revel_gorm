@@ -91,9 +91,9 @@
     revel_gorm delete views ModelName
 
 #### Delete model + views + controller
-revel_gorm delete scaffold ModelName
+	revel_gorm delete scaffold ModelName
 
-*Add proper route in your routes
+####Add proper route in your routes
 	GET     /controllers 									Controller.Index
 	POST    /controllers 									Controller.Create
 	POST    /controllers/update 							Controller.Update
@@ -102,6 +102,6 @@ revel_gorm delete scaffold ModelName
 	GET  	/controllers/new								Controller.New
 	GET  	/controller/:id/edit							Controller.Edit
 
-*reference lib
+####references
   https://github.com/jinzhu/gorm
   https://revel.github.io/
