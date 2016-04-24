@@ -23,7 +23,7 @@ func generateModel(mname, fields, crupath string) {
 	}
 
 	// get Struct from fileds 
-	modelStruct, err := GetStruct(modelName, fields)
+	modelStruct, timePkg, err := GetStruct(modelName, fields)
 	if err != nil {
 		ColorLog("[ERRO] Could not genrate models struct: %s\n", err)
 		os.Exit(2)
@@ -57,6 +57,11 @@ func generateModel(mname, fields, crupath string) {
 		databasePkg := path.Join(projectName, "app", "models", "database")
 
 		content := strings.Replace(modelTpl, "{{packageName}}", "models", -1)
+		if timePkg == true{
+			content = strings.Replace(content, "{{timePkg}}", `"time"`, -1)
+		}else{
+			content = strings.Replace(content, "{{timePkg}}", "", -1)
+		}
 		content = strings.Replace(content, "{{databasePkg}}", databasePkg, -1)
 		content = strings.Replace(content, "{{modelStruct}}", modelStruct, -1)
 		content = strings.Replace(content, "{{modelStructName}}", modelName, -1)
@@ -95,6 +100,7 @@ import (
 	"{{databasePkg}}"
 	"github.com/jinzhu/gorm"
 	"errors"
+	{{timePkg}}
 	"github.com/revel/revel"
 )
 

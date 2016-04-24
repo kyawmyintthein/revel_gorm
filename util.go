@@ -219,9 +219,10 @@ func GetControllerStruct(controllerName string) (string, error){
 	return controllerStr, nil
 }
 
-func GetStruct(structname, fields string) (string, error) {
+func GetStruct(structname, fields string) (string, bool, error) {
+	var hastime = false
 	if fields == "" {
-		return "", errors.New("fields can't empty")
+		return "", hastime, errors.New("fields can't empty")
 	}
 	structStr := "type " + structname + " struct{\n"
 	structStr += "gorm.Model\n"
@@ -229,16 +230,19 @@ func GetStruct(structname, fields string) (string, error) {
 	for _, v := range fds {
 		kv := strings.SplitN(v, ":", 2)
 		if len(kv) != 2 {
-			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+			return "", hastime, errors.New("the filds format is wrong. should key:type,key:type " + v)
 		}		
-		typ := getType(kv[1])
-		if typ == "" {
-			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		typ, timePackage := getAttrType(kv[1])
+		if timePackage {
+			hastime = true
 		}
-		structStr = structStr + camelString(kv[0]) + "       " + typ + "     " + "`json:\"" + kv[0] + "\" gorm:\"column:" + kv[0]+ "\"`\n"
+		if typ == "" {
+			return "", hastime, errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+		structStr = structStr + camelString(kv[0]) + "       " + typ + "     " + "`json:\"" + strings.ToLower(kv[0]) + "\" gorm:\"column:" + kv[0]+ "\"`\n"
 	}
 	structStr += "}\n"
-	return structStr, nil
+	return structStr, hastime, nil
 }
 
 func GetFormAttributes(structname, fields string) (string, error){
@@ -300,21 +304,17 @@ func GetInputType(attrType string,s string) string{
 	kv := strings.SplitN(attrType, ":", 2)
 	switch kv[0] {
 	case "string":
-		if len(kv) == 2 {
-			return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"text\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
-		} else {
-			return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n"+ "<input type=\"text\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
-		}
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n"+ "<input type=\"text\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
 	case "datetime":
 		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"text\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
 	case "int", "int8", "int16", "int32", "int64":
-		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
 	case "uint", "uint8", "uint16", "uint32", "uint64":
-		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
-	case "float32", "float64":
-		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
-	case "float":
-		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"datepicker {{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	case "float","float32", "float64":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	case "bool":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "{{checkbox $field \"true\"}}" + "<span class=\"error\">{{$field.Error}}</span>\n"
 	}
 	return ""
 }
@@ -459,6 +459,28 @@ func getType(ktype string) string {
 		return "float64"
 	}
 	return ""
+}
+
+// fields support type
+func getAttrType(ktype string) (string, bool){
+	kv := strings.SplitN(ktype, ":", 2)
+	switch kv[0] {
+	case "string":
+		return "string", false
+	case "datetime":
+		return "time.Time", true
+	case "int", "int8", "int16", "int32", "int64":
+		fallthrough
+	case "uint", "uint8", "uint16", "uint32", "uint64":
+		fallthrough
+	case "bool":
+		fallthrough
+	case "float32", "float64":
+		return kv[0], false
+	case "float":
+		return "float64", false
+	}
+	return "", false
 }
 
 // ColorLog colors log and print to stdout.
