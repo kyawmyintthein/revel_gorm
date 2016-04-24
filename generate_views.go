@@ -128,14 +128,24 @@ func generateViews(mname, fields, crupath string) {
 func deleteViews(mname, crupath string) {
 	_, f := path.Split(mname)
 	modelName := strings.Title(f)
-	filePath := path.Join(crupath, "app", "views", modelName)
-	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
-		err = os.Remove(filePath)
+	folderPath := path.Join(crupath, "app", "views", modelName)
+	if _, err := os.Stat(folderPath); !os.IsNotExist(err) {
+		viewFiles := []string{"Index", "Show", "New", "Edit"}
+		for _, filename := range viewFiles{
+			currentFile := path.Join(crupath, "app", "views" , modelName, filename + ".html")
+			if _, err := os.Stat(currentFile); !os.IsNotExist(err) {
+				err = os.Remove(currentFile)
+				if err != nil{
+					ColorLog("[ERRO] Could not delete %s: %s\n",filename,err)
+				}
+			}	
+		}
+		err = os.Remove(folderPath)
 		if err != nil{
-			ColorLog("[ERRO] Could not delete views: %s\n", err)
+			ColorLog("[ERRO] Could not delete views folder: %s\n", err)
 			os.Exit(2)	
 		}
-		ColorLog("[INFO] views files are deleted: %s\n", filePath)	
+		ColorLog("[INFO] views files are deleted: %s\n", folderPath)	
 	}
 
 }
