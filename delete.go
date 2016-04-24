@@ -53,7 +53,10 @@ func deleteCode(cmd *Command, args []string){
 		sname := args[1]
 		ColorLog("[INFO] Removing '%s' model\n", sname)
 		ColorLog("[INFO] Removing '%s' controller\n", sname)
+		ColorLog("[INFO] Removing '%s' views\n", sname)
 		deleteController(sname, curpath)
+		deleteModel(sname, curpath)
+		deleteViews(sname, curpath)
 
 	case "controller":
 		if len(args)<  2 {
@@ -65,8 +68,6 @@ func deleteCode(cmd *Command, args []string){
 		sname := args[1]
 		ColorLog("[INFO] Removing '%s' model\n", sname)
 		deleteController(sname, curpath)
-		deleteModel(sname, curpath)
-
 	case "model":
 		if len(args) < 2 {
 			ColorLog("[ERRO] Wrong number of arguments\n")
@@ -77,6 +78,17 @@ func deleteCode(cmd *Command, args []string){
 		sname := args[1]
 		ColorLog("[INFO] Removing '%s' model\n", sname)
 		deleteModel(sname, curpath)
+	case "views":
+		if len(args) < 2 {
+			ColorLog("[ERRO] Wrong number of arguments\n")
+			ColorLog("[HINT] Usage: revel_mgo delete views [modelname]\n")
+			os.Exit(2)
+		}
+
+		sname := args[1]
+		ColorLog("[INFO] Removing '%s' views\n", sname)
+		deleteViews(sname, curpath)
+		
 	default:
 		ColorLog("[ERRO] command is missing\n")
 		os.Exit(2)

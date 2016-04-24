@@ -124,6 +124,22 @@ func generateViews(mname, fields, crupath string) {
 }
 
 
+// remove existing vuews file
+func deleteViews(mname, crupath string) {
+	_, f := path.Split(mname)
+	modelName := strings.Title(f)
+	filePath := path.Join(crupath, "app", "views", modelName)
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		err = os.Remove(filePath)
+		if err != nil{
+			ColorLog("[ERRO] Could not delete views: %s\n", err)
+			os.Exit(2)	
+		}
+		ColorLog("[INFO] views files are deleted: %s\n", filePath)	
+	}
+
+}
+
 
 var indexTpl = `
 {{set . "title" "{{pageTitle}}"}}
