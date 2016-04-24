@@ -16,9 +16,6 @@
 #### Setup database 
     revel_gorm db:setup 
 
-#### Setup database 
-    revel_gorm db:setup 
-
 #### Update the database.conf for your application.
   *Add following code in your database.conf file and change your database configuration.*
    
