@@ -59,14 +59,14 @@ func InitDB() {
         driver, _ =  config.String("dev", "driver");
         database, _ =  config.String("dev", "database");
         port, _ =  config.String("dev", "port");
-        user, _ =  config.String("dev", "username");
+        username, _ =  config.String("dev", "username");
         password, _ =  config.String("dev", "password");
         host, _ =  config.String("dev", "host");
     case "prod":
         driver, _ =  config.String("prod", "driver");
         database, _ =  config.String("prod", "database");
         port, _ =  config.String("prod", "port");
-        user, _ =  config.String("prod", "username");
+        username, _ =  config.String("prod", "username");
         password, _ =  config.String("prod", "password");
         host, _ =  config.String("prod", "host");
     default:

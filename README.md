@@ -95,3 +95,12 @@
 
 #### Delete model + views + controller
 revel_gorm delete scaffold ModelName
+
+*Add proper route in your routes
+GET     /controllers 									Controller.Index
+POST    /controllers 									Controller.Create
+POST    /controllers/update 							Controller.Update
+GET     /controller/:id 								Controller.Show
+POST  	/controller/:id									Controller.Delete
+GET  	/controllers/new								Controller.New
+GET  	/controller/:id/edit							Controller.Edit
