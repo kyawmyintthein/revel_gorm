@@ -73,8 +73,13 @@ func InitDB() {
         panic(errors.New("Invalid RunMode"))
     }
 
-	sqlConn :=  username + ":" + password + "@/" + database + "?charset=utf8"+ "&parseTime=True"
-	DB, err = gorm.Open(driver, sqlConn)
+    sqlConn := ""
+    if port != "" && host != ""{
+        sqlConn := username + ":" + password + "@tcp(" + host + ":" + port + ")/"+ database + "?charset=utf8"+ "&parseTime=True"
+    }else{
+        sqlConn := username + ":" + password + "@tcp/"+ database + "?charset=utf8"+ "&parseTime=True"
+    }
+    DB, err = gorm.Open(driver, sqlConn)
 	if err != nil{
 		panic(err.Error())
 	}
