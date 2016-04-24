@@ -14,15 +14,19 @@ func generateRestController(cname, crupath string) {
 	// set controller name to uppercase
 	controllerName := strings.Title(f)
 
-	//set default package
-	packageName := "controllers"
+	defaultFilename := "api_"
+	versionName := ""
 	if p != "" {
 		i := strings.LastIndex(p[:len(p)-1], "/")
-		packageName = p[i+1 : len(p)-1]
+		versionName += p[i+1 : len(p)-1] 
+		defaultFilename += versionName + "_"
 	}
 
+	//set default package
+	packageName := "controllers"
+
 	// get struct for controller 
-	controllerStruct, err := GetControllerStruct(controllerName)
+	controllerStruct, err := GetRestControllerStruct(versionName, controllerName)
 	if err != nil {
 		ColorLog("[ERRO] Could not genrate controllers struct: %s\n", err)
 		os.Exit(2)
@@ -32,7 +36,7 @@ func generateRestController(cname, crupath string) {
 	ColorLog("[INFO] Using '%s' as package name\n", packageName)
 
 	// create controller folders
-	filePath := path.Join(crupath ,"app", "controllers", p)
+	filePath := path.Join(crupath ,"app", "controllers")
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		// create controller directory
 		if err := os.MkdirAll(filePath, 0777); err != nil {
@@ -42,7 +46,7 @@ func generateRestController(cname, crupath string) {
 	}
 
 	// create common controller.go
-	commonCtrFp := path.Join(crupath, "app", "controllers", "controller.go")
+	commonCtrFp := path.Join(crupath, "app", "controllers","controller.go")
 	if _, err := os.Stat(commonCtrFp); os.IsNotExist(err) {
 		if cf, err := os.OpenFile(commonCtrFp, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0666); err == nil {
 			defer cf.Close()	
@@ -64,7 +68,8 @@ func generateRestController(cname, crupath string) {
 		os.Exit(2)
 	}
 	// create controller file
-	fpath := path.Join(filePath, strings.ToLower(controllerName)+".go")
+	filename :=  defaultFilename + strings.ToLower(controllerName)+".go"
+	fpath := path.Join(filePath, filename)
 	if f, err := os.OpenFile(fpath, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0666); err == nil {
 		defer f.Close()
 
@@ -72,10 +77,10 @@ func generateRestController(cname, crupath string) {
 		projectName := paths[len(paths) - 1:][0]
 		modelsPkg := path.Join(projectName, "app", "models")
 
-		content := strings.Replace(controllerTpl, "{{packageName}}", packageName, -1)
+		content := strings.Replace(restControllerTpl, "{{packageName}}", packageName, -1)
 		content = strings.Replace(content, "{{modelsPkg}}", modelsPkg, -1)
 		content = strings.Replace(content, "{{controllerStruct}}", controllerStruct, -1)
-		content = strings.Replace(content, "{{contorllerStructName}}", controllerName + "Controller", -1)
+		content = strings.Replace(content, "{{contorllerStructName}}",  versionName + "_" + controllerName, -1)
 		content = strings.Replace(content, "{{modelObjects}}", strings.ToLower(controllerName+"s"), -1)
 		content = strings.Replace(content, "{{modelObject}}", strings.ToLower(controllerName), -1)
 		content = strings.Replace(content, "{{modelStruct}}", controllerName, -1)
@@ -231,6 +236,153 @@ func buildErrResponse(err error, errorCode string) CtrlErr {
 
 `
 var controllerTpl = `package {{packageName}}
+
+import (
+	"github.com/revel/revel"
+	"{{modelsPkg}}"
+	"fmt"
+)
+
+{{controllerStruct}}
+
+func (c {{contorllerStructName}}) Index() revel.Result {  
+	var (
+		{{modelObjects}} []models.{{modelStruct}}
+		err error
+	)
+	{{modelObjects}}, err = models.Get{{modelStructs}}()
+	if err != nil{
+		return c.RenderError(err)
+	}
+	c.Response.Status = 200
+    return c.Render({{modelObjects}})
+}
+
+func (c {{contorllerStructName}}) Show(id string) revel.Result {  
+    var (
+    	{{modelObject}} models.{{modelStruct}}
+    	err error
+    )
+
+    if id == ""{
+  		return c.Forbidden("Invalid id parameter", id)
+    }
+
+    {{modelObject}}ID := parseUintOrDefault(id, 0)
+    if {{modelObject}}ID == 0{
+    	return c.Forbidden("Invalid id parameter", id)
+    }
+
+    {{modelObject}}, err = models.Get{{modelStruct}}({{modelObject}}ID)
+    if err != nil{
+    	return c.NotFound("{{modelStruct}} not found", err)
+    }
+
+    return c.Render({{modelObject}})
+}
+
+func (c {{contorllerStructName}}) Create({{modelObject}} models.{{modelStruct}}) revel.Result {  
+    var (
+    	err error
+    )
+
+    {{modelObject}}.Validate(c.Validation)
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect({{modelStruct}}.New)
+	}
+
+	{{modelObject}}, err = models.Add{{modelStruct}}({{modelObject}})
+	if err != nil{
+		return c.RenderError(err)
+	}
+
+    c.Flash.Success(fmt.Sprintf("{{modelStruct}} %d is successfully created!",{{modelObject}}.ID))
+	return c.Redirect("/{{modelObject}}/%d", {{modelObject}}.ID)
+}
+
+func (c {{contorllerStructName}}) Update({{modelObject}} models.{{modelStruct}}) revel.Result {  
+	var (
+    	err error
+    )
+
+    {{modelObject}}.Validate(c.Validation)
+	if c.Validation.HasErrors() {
+		c.Validation.Keep()
+		c.FlashParams()
+		return c.Redirect({{modelStruct}}.Edit)
+	}
+
+	{{modelObject}}, err = {{modelObject}}.Update{{modelStruct}}()
+	if err != nil{
+		return c.RenderError(err)
+	}
+    
+    c.Flash.Success(fmt.Sprintf("{{modelStruct}} %d is successfully updated!",{{modelObject}}.ID))
+	return c.Redirect("/{{modelObject}}/%d", {{modelObject}}.ID)
+}
+
+func (c {{contorllerStructName}}) Delete(id string) revel.Result { 
+	var (
+    	err error
+    	{{modelObject}} models.{{modelStruct}}
+    )
+    
+    if id == ""{
+    	return c.Forbidden("Invalid id parameter", id)
+    }
+
+    {{modelObject}}ID := parseUintOrDefault(id, 0)
+    if {{modelObject}}ID == 0{
+    	return c.Forbidden("Invalid id parameter", id)
+    }
+
+    {{modelObject}}, err = models.Get{{modelStruct}}({{modelObject}}ID)
+    if err != nil{
+    	return c.NotFound("{{modelStruct}} not found", err)
+    }
+
+	err = {{modelObject}}.Delete{{modelStruct}}()
+	if err != nil{
+		return c.RenderError(err)
+	} 
+	c.Flash.Success(fmt.Sprintf("{{modelStruct}} %d is successfully deleted!",{{modelObject}}.ID))
+	return c.Redirect({{modelStruct}}.Index)
+}
+
+func (c {{contorllerStructName}}) New() revel.Result { 
+	c.Response.Status = 200
+    return c.Render()
+}
+
+func (c {{contorllerStructName}}) Edit(id string) revel.Result { 
+
+	var (
+    	err error
+    	{{modelObject}} models.{{modelStruct}}
+    )
+
+	if id == ""{
+    	return c.Forbidden("Invalid id parameter", id)
+    }
+
+    {{modelObject}}ID := parseUintOrDefault(id, 0)
+    if {{modelObject}}ID == 0{
+    	return c.Forbidden("Invalid id parameter", id)
+    }
+
+    {{modelObject}}, err = models.Get{{modelStruct}}({{modelObject}}ID)
+    if err != nil{
+    	return c.NotFound("{{modelStruct}} not found", err)
+    }
+
+	c.Response.Status = 200
+    return c.Render({{modelObject}})
+}
+`
+
+var restControllerTpl = `package {{packageName}}
 
 import (
 	"errors"

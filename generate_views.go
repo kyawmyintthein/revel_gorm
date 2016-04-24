@@ -6,6 +6,7 @@ import(
 	"os"
 	"path"
 	"strings"
+	 "github.com/yosssi/gohtml"
 )
 
 // generate controller
@@ -22,11 +23,31 @@ func generateViews(mname, fields, crupath string) {
 		os.Exit(2)
 	}
 
-	body, err := GetTableBody(modelName, fields)
+	body, err := GetIndexTableBody(modelName, fields)
 	if err != nil {
 		ColorLog("[ERRO] Could not genrate views: %s\n", err)
 		os.Exit(2)
 	}
+
+
+	showTable, err := GetShowTableBody(modelName, fields)
+	if err != nil {
+		ColorLog("[ERRO] Could not genrate views: %s\n", err)
+		os.Exit(2)
+	}
+
+	form, err := GetFormAttributes(modelName, fields)
+	if err != nil {
+		ColorLog("[ERRO] Could not genrate views: %s\n", err)
+		os.Exit(2)
+	}
+
+	updateForm, err := GetUpdateFormAttributes(modelName, fields)
+	if err != nil {
+		ColorLog("[ERRO] Could not genrate views: %s\n", err)
+		os.Exit(2)
+	}
+
 
 	ColorLog("[INFO] Using '%s' is generated in views path\n", modelName)
 
@@ -40,7 +61,7 @@ func generateViews(mname, fields, crupath string) {
 		}
 	}
 
-	viewFiles := []string{"Index", "Show", "New", "Edit", "form"}
+	viewFiles := []string{"Index", "Show", "New", "Edit"}
 	for _, filename := range viewFiles{
 		currentFile := path.Join(crupath, "app", "views" , modelName, filename + ".html")
 		if _, err := os.Stat(currentFile); os.IsNotExist(err) {
@@ -49,37 +70,48 @@ func generateViews(mname, fields, crupath string) {
 				switch filename{
 				case "Index":
 					content := strings.Replace(indexTpl, "{{pageTitle}}", modelName, -1)		
-					content = strings.Replace(content, "{{pageHeader}}", modelName, -1)
+					content = strings.Replace(content, "{{pageHeader}}", modelName + "s", -1)
 					content = strings.Replace(content, "{{tableHeaders}}", header, -1)	
-					content = strings.Replace(content, "{{body}}", body, -1)				
+					content = strings.Replace(content, "{{body}}", body, -1)	
+					content = strings.Replace(content, "{{newMethod}}", "New", -1)	
+					content = strings.Replace(content, "{{modelName}}", modelName, -1)		
+					gohtml.FormatWithLineNo(content)			
 					cf.WriteString(content)
 				case "Show":
-					content := strings.Replace(indexTpl, "{{title}}", modelName, -1)		
-					// content = strings.Replace(indexTpl, "{{header}}", modelName, -1)
-					// content = strings.Replace(indexTpl, "{{tds}}", header, -1)	
-					// content = strings.Replace(indexTpl, "{{body}}", body, -1)				
+					content := strings.Replace(showTpl, "{{pageTitle}}", modelName, -1)		
+					content = strings.Replace(content, "{{pageHeader}}", modelName, -1)
+					content = strings.Replace(content, "{{modelName}}", modelName, -1)
+					content = strings.Replace(content, "{{body}}", showTable, -1)	
+					content = strings.Replace(content, "{{editMethod}}", "Edit", -1)	
+					content = strings.Replace(content, "{{indexMethod}}", "Index", -1)		
+					gohtml.FormatWithLineNo(content)				
 					cf.WriteString(content)
 				case "New":
-					content := strings.Replace(indexTpl, "{{title}}", modelName, -1)		
-					// content = strings.Replace(indexTpl, "{{header}}", modelName, -1)
-					// content = strings.Replace(indexTpl, "{{tds}}", header, -1)	
-					// content = strings.Replace(indexTpl, "{{body}}", body, -1)				
+					content := strings.Replace(newTpl, "{{pageTitle}}", modelName, -1)		
+					content = strings.Replace(content, "{{pageHeader}}", "New " + modelName, -1)	
+					content = strings.Replace(content, "{{method}}", "POST", -1)	
+					content = strings.Replace(content, "{{action}}", strings.ToLower(modelName) +"s", -1)
+					content = strings.Replace(content, "{{modelName}}", modelName, -1)	
+					content = strings.Replace(content, "{{buttonName}}", "Create " + strings.ToLower(modelName), -1)
+					content = strings.Replace(content, "{{formAttributes}}", form, -1)	
+					content = strings.Replace(content, "{{Action}}", "Create" , -1)			
+					gohtml.FormatWithLineNo(content)				
 					cf.WriteString(content)
 				case "Edit":
-					content := strings.Replace(indexTpl, "{{title}}", modelName, -1)		
-					// content = strings.Replace(indexTpl, "{{header}}", modelName, -1)
-					// content = strings.Replace(indexTpl, "{{tds}}", header, -1)	
-					// content = strings.Replace(indexTpl, "{{body}}", body, -1)				
-					cf.WriteString(content)
-				case "form":
-					content := strings.Replace(indexTpl, "{{title}}", modelName, -1)		
-					// content = strings.Replace(indexTpl, "{{header}}", modelName, -1)
-					// content = strings.Replace(indexTpl, "{{tds}}", header, -1)	
-					// content = strings.Replace(indexTpl, "{{body}}", body, -1)				
+					content := strings.Replace(editTpl, "{{pageTitle}}", modelName, -1)		
+					content = strings.Replace(content, "{{pageHeader}}", "Edit " + modelName, -1)
+					content = strings.Replace(content, "{{method}}", "POST", -1)	
+					content = strings.Replace(content, "{{action}}", strings.ToLower(modelName) + "s/update", -1)
+					content = strings.Replace(content, "{{modelName}}", modelName, -1)	
+					content = strings.Replace(content, "{{buttonName}}", "Save " + strings.ToLower(modelName), -1)	
+					content = strings.Replace(content, "{{formAttributes}}", updateForm, -1)	
+					content = strings.Replace(content, "{{Action}}", "Update" , -1)		
+					gohtml.FormatWithLineNo(content)				
 					cf.WriteString(content)
 				}	
 				// gofmt generated source code
 				// FormatSourceCode(currentFile)
+
 				ColorLog("[INFO] '%s' view file are generated as: %s\n", filename,currentFile)
 			} else {
 				// error creating file
@@ -113,16 +145,23 @@ var indexTpl = `
       {{template "flash.html" .}}
     </div>
     <div class="col-md-12">
-		<table class="table table-striped">
-			<thead>
-				<tr>
-					{{tableHeaders}}
-				</tr>
-			</thead>
-			<tbody>
-				{{body}}
-			</tbody>
-		</table>
+        <div class="panel-header">
+	  		<a href="{{url "{{modelName}}.{{newMethod}}"}}" class="btn btn-default">New</a>
+	    </div>
+    	<div class="panel panel-default">
+		  <div class="panel-body">
+			<table class="table table-striped">
+				<thead>
+					<tr>
+						{{tableHeaders}}
+					</tr>
+				</thead>
+				<tbody>
+					{{body}}
+				</tbody>
+			</table>
+          </div>
+		</div>
     </div>
   </div>
 </div>
@@ -130,14 +169,14 @@ var indexTpl = `
 `
 
 var showTpl = `
-{{set . "title" "Home"}}
+{{set . "title" "{{pageTitle}}"}}
 {{template "header.html" .}}
 
 <header class="hero-unit">
   <div class="container">
     <div class="row">
       <div class="hero-text">
-        <h1>{{header}}</h1>
+        <h1>{{pageHeader}}</h1>
       </div>
     </div>
   </div>
@@ -149,16 +188,19 @@ var showTpl = `
       {{template "flash.html" .}}
     </div>
     <div class="col-md-12">
-		<table class="table table-striped">
-			<thead>
-				<th>
-					{{tds}}
-				</th>
-			</thead>
-			<tbody>
-				{{trs}}
-			</tbody>
-		</table>
+    	<div class="panel panel-default">
+		  <div class="panel-body">
+		    <table class="table table-striped">
+				<tbody>
+					{{body}}
+				</tbody>
+			</table>
+		  </div>
+		  <div class="panel-footer">
+		  		<a href="{{url "{{modelName}}.{{editMethod}}"}}" class="btn btn-info">Edit</a>
+		  		<a href="{{url "{{modelName}}.{{indexMethod}}"}}" class="btn btn-default">{{modelName}}s</a>
+    	  </div>
+		</div>
     </div>
   </div>
 </div>
@@ -166,15 +208,15 @@ var showTpl = `
 `
 
 
-var htmlModelTpl = `
-{{set . "title" "Home"}}
+var editTpl = `
+{{set . "title" "{{pageTitle}}"}}
 {{template "header.html" .}}
 
 <header class="hero-unit">
   <div class="container">
     <div class="row">
       <div class="hero-text">
-        <h1>{{header}}</h1>
+        <h1>{{pageHeader}}</h1>
       </div>
     </div>
   </div>
@@ -186,14 +228,40 @@ var htmlModelTpl = `
       {{template "flash.html" .}}
     </div>
     <div class="col-md-12">
-		<form method="{{method}}" action="{{action}}">
+    	<form method="POST" action="{{ url "{{modelName}}.{{Action}}"}}">
+			{{formAttributes}}
+    		<input type="submit" class="btn btn-success" value="{{buttonName}}" />
 		</form>
     </div>
   </div>
 </div>
-{{template "footer.html" .}}
-`
-var formTpl = `
-<form method="{{method}}" action="{{action}}">
+{{template "footer.html" .}}`
+
+var newTpl = `
+{{set . "title" "{{pageTitle}}"}}
+{{template "header.html" .}}
+
+<header class="hero-unit">
+  <div class="container">
+    <div class="row">
+      <div class="hero-text">
+        <h1>{{pageHeader}}</h1>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      {{template "flash.html" .}}
+    </div>
+    <div class="col-md-12">
+    	<form method="POST" action="{{ url "{{modelName}}.{{Action}}"}}">
+			{{formAttributes}}
+    		<input type="submit" class="btn btn-success" value="{{buttonName}}" />
 		</form>
-`
+    </div>
+  </div>
+</div>
+{{template "footer.html" .}}`

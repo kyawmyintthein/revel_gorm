@@ -47,7 +47,7 @@ func generateCode(cmd *Command, args []string){
 
 	gcmd := args[0]
 	switch gcmd {
-	case "api-scaffold":
+	case "rest-scaffold":
 		if len(args) < 2 {
 			ColorLog("[ERRO] Wrong number of arguments\n")
 			ColorLog("[HINT] Usage: revel_mgo generate scaffold [modelname] [-fields=\"\"]\n")
@@ -66,7 +66,7 @@ func generateCode(cmd *Command, args []string){
 		//generate model and controller
 		generateModel(sname, fields.String(), curpath)
 		generateRestController(sname, curpath)
-	case "api-controller":
+	case "rest-controller":
 		if len(args) == 2 {
 			cname := args[1]
 			generateRestController(cname, curpath)
@@ -94,6 +94,7 @@ func generateCode(cmd *Command, args []string){
 		//generate model and controller
 		generateModel(sname, fields.String(), curpath)
 		generateController(sname, curpath)
+		generateViews(sname, fields.String(), curpath)
 	case "controller":
 		if len(args) == 2 {
 			cname := args[1]

@@ -205,6 +205,13 @@ func empty(dirname string) bool {
 	return len(results) == 0
 }
 
+func GetRestControllerStruct(p ,controllerName string) (string, error){
+	controllerStr := "type " +p + "_"+ controllerName + " struct{\n"
+	controllerStr += " *revel.Controller\n"
+	controllerStr += "}\n"
+	return controllerStr, nil
+}
+
 func GetControllerStruct(controllerName string) (string, error){
 	controllerStr := "type " + controllerName + " struct{\n"
 	controllerStr += " *revel.Controller\n"
@@ -234,6 +241,84 @@ func GetStruct(structname, fields string) (string, error) {
 	return structStr, nil
 }
 
+func GetFormAttributes(structname, fields string) (string, error){
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+
+	fds := strings.Split(fields, ",")
+	structStr := ""
+	for _, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}		
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+		structStr += "<div class=\"form-group\">\n" 
+		structStr += "{{with $field := field \""+ strings.ToLower(structname) + "." + camelString(kv[0]) + "\" .}}\n"
+		structStr += GetInputType(kv[1],kv[0]) +"\n"
+		structStr += "{{end}}\n</div>\n"
+	}
+	return structStr, nil
+}
+
+
+func GetUpdateFormAttributes(structname, fields string) (string, error){
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+
+	fds := strings.Split(fields, ",")
+	structStr := ""
+	structStr += "{{with $field := field \"post.ID\" .}}\n"
+	structStr += "<input type=\"hidden\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\">\n"
+	structStr += "{{end}}\n"
+	for _, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}		
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+
+		structStr += "<div class=\"form-group\">\n" 
+		structStr += "{{with $field := field \""+ strings.ToLower(structname) + "." + camelString(kv[0]) + "\" .}}\n"
+		structStr += GetInputType(kv[1],kv[0]) +"\n"
+		structStr += "{{end}}\n</div>\n"
+	}
+	return structStr, nil
+}
+
+
+          
+func GetInputType(attrType string,s string) string{
+	kv := strings.SplitN(attrType, ":", 2)
+	switch kv[0] {
+	case "string":
+		if len(kv) == 2 {
+			return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"text\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+		} else {
+			return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n"+ "<input type=\"text\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+		}
+	case "datetime":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"text\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	case "int", "int8", "int16", "int32", "int64":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	case "uint", "uint8", "uint16", "uint32", "uint64":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	case "float32", "float64":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	case "float":
+		return  "<label for=\"{{$field.Id}}\">" + camelString(s) +" * </label>\n" + "<input type=\"number\" size=\"10\" id=\"{{$field.Id}}\" name=\"{{$field.Name}}\" value=\"{{$field.Value}}\" class=\"{{$field.ErrorClass}}\">\n" + "<span class=\"error\">{{$field.Error}}</span>\n"
+	}
+	return ""
+}
+
 func GetTableHeaders(structname, fields string) (string, error) {
 	if fields == "" {
 		return "", errors.New("fields can't empty")
@@ -255,8 +340,7 @@ func GetTableHeaders(structname, fields string) (string, error) {
 	return structStr, nil
 }
 
-func GetTableBody(structname, fields string) (string, error) {
-	var id string
+func GetIndexTableBody(structname, fields string) (string, error) {
 	if fields == "" {
 		return "", errors.New("fields can't empty")
 	}
@@ -271,16 +355,35 @@ func GetTableBody(structname, fields string) (string, error) {
 		if typ == "" {
 			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
 		}
-		if kv[0] == "id"{
-			id = kv[0]
-		}else{
-			structStr += "<td> {{." + camelString(kv[0]) + "}} </td>\n"
-		}
+		structStr += "<td> {{." + camelString(kv[0]) + "}} </td>\n"
+		
 		
 	}
-	structStr += "<td><a href=\"{{url \"" + camelString(structname) + "s" + ".Show " + id + "\"}}\"> Show </a></td>\n"
-	structStr += "<td><a href=\"{{url \"" + camelString(structname) + "s" + ".Edit " + id + "\"}}\"> Show </a></td>\n"
-	structStr += "<td><a href=\"{{url \"" + camelString(structname) + "s" + ".Delete " + id + "\"}}\"> Show </a></td>\n<tr>\n{{end}}\n"
+
+	structStr += "<td><a href=\"{{url \"" + camelString(structname) + ".Show\" .ID}}\"> Show </a></td>\n"
+	structStr += "<td><a href=\"{{url \"" + camelString(structname) + ".Edit\" .ID}}\"> Edit </a></td>\n"
+	structStr += "<td>\n"	  + "<form method=\"POST\" action=\"{{ url \"" + camelString(structname) + ".Delete\" .ID}}\">\n" + "<input type=\"submit\" class=\"btn btn-danger\" value=\"Delete\"></input>\n" +"</form>\n" +"</td>\n<tr>\n{{end}}\n"
+	return structStr, nil
+}
+
+func GetShowTableBody(structname, fields string) (string, error) {
+	if fields == "" {
+		return "", errors.New("fields can't empty")
+	}
+	fds := strings.Split(fields, ",")
+	structStr := "{{with ." + strings.ToLower(structname) + "}}\n"
+	for _, v := range fds {
+		kv := strings.SplitN(v, ":", 2)
+		if len(kv) != 2 {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}		
+		typ := getType(kv[1])
+		if typ == "" {
+			return "", errors.New("the filds format is wrong. should key:type,key:type " + v)
+		}
+		structStr += "<tr><td> <label>" + camelString(kv[0]) + ": </lable></td><td> {{." + camelString(kv[0]) + "}} </td></tr>\n"	
+	}
+	structStr += "{{end}}"
 	return structStr, nil
 }
 

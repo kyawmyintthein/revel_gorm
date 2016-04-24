@@ -95,6 +95,7 @@ import (
 	"{{databasePkg}}"
 	"github.com/jinzhu/gorm"
 	"errors"
+	"github.com/revel/revel"
 )
 
 {{modelStruct}}
@@ -160,6 +161,7 @@ func (m {{modelStructName}}) Delete{{modelStructName}}() error{
      	tx.Rollback()
      	return err
   	}
+  	tx.Commit()
   	return err
 }
 
@@ -202,6 +204,10 @@ func Migrate{{modelStructName}}(){
 
 func ({{modelStructName}}) TableName() string {
   return "{{modelObjectName}}s"
+}
+
+func ({{modelObjectName}} *{{modelStructName}}) Validate(v *revel.Validation) {
+	//Validation rules here
 }
 
 `
