@@ -206,7 +206,7 @@ func empty(dirname string) bool {
 }
 
 func GetRestControllerStruct(p ,controllerName string) (string, error){
-	controllerStr := "type " +p + "_"+ controllerName + " struct{\n"
+	controllerStr := "type " +camelString(p) + "_"+ controllerName + " struct{\n"
 	controllerStr += " *revel.Controller\n"
 	controllerStr += "}\n"
 	return controllerStr, nil

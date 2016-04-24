@@ -80,7 +80,7 @@ func generateRestController(cname, crupath string) {
 		content := strings.Replace(restControllerTpl, "{{packageName}}", packageName, -1)
 		content = strings.Replace(content, "{{modelsPkg}}", modelsPkg, -1)
 		content = strings.Replace(content, "{{controllerStruct}}", controllerStruct, -1)
-		content = strings.Replace(content, "{{contorllerStructName}}",  versionName + "_" + controllerName, -1)
+		content = strings.Replace(content, "{{contorllerStructName}}",  strings.Title(versionName) + "_" + controllerName, -1)
 		content = strings.Replace(content, "{{modelObjects}}", strings.ToLower(controllerName+"s"), -1)
 		content = strings.Replace(content, "{{modelObject}}", strings.ToLower(controllerName), -1)
 		content = strings.Replace(content, "{{modelStruct}}", controllerName, -1)
