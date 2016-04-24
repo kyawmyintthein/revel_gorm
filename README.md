@@ -83,3 +83,15 @@
     
 #### Scaffold model + views + controller  for API
     revel_gorm generate res-scaffold ModelName -fields="fieldname:string,fieldname:int,fieldname:bool,,datetime"
+
+#### Delete model
+    revel_gorm delete model ModelName
+
+#### Delete controller
+    revel_gorm delete controller ModelName
+
+#### Delete views
+    revel_gorm delete views ModelName
+
+#### Delete model + views + controller
+revel_gorm delete scaffold ModelName
