@@ -95,13 +95,13 @@ func generateDBConfig(cmd *Command, args []string) {
 // templates
 var mysqlDatabaseConfigTpl =  
 `[dev]
-driver: mysql
+driver= mysql
 encoding: utf8
 database: {{dbName}}_dev
 maxConn = 30
 maxIdle = 30
-username: root
-password:
+username= root
+password=
 host = 127.0.0.1
 port = 3306
 
@@ -112,74 +112,74 @@ encoding: utf8
 database: {{dbName}}
 maxConn = 30
 maxIdle = 30
-username: root
-password:
+username= root
+password=
 host = 127.0.0.1
 port = 3306
 
 
 [test]
-driver: mysql
-encoding: utf8
-database: {{dbName}}_test	
+driver= mysql
+encoding= utf8
+database= {{dbName}}_test	
 maxConn = 30
 maxIdle = 30
-username: root
-password:
+username= root
+password=
 host = 127.0.0.1
 port = 3306`
 		
 var sqliteDatabaseConfigTpl =  
 `[dev]
-driver: sqlite3
-database: db/{{dbName}}_dev.sqlite3
+driver= sqlite3
+database= db/{{dbName}}_dev.sqlite3
 maxConn = 30
 maxIdle = 30
 timeout: 5000
 
 
 [prod]
-driver: sqlite3
-database: db/{{dbName}}.sqlite3
+driver= sqlite3
+database= db/{{dbName}}.sqlite3
 maxConn = 30
 maxIdle = 30
-timeout: 5000
+timeout= 5000
 
 
 [test]
-driver: sqlite3
-database: db/{{dbName}}_test.sqlite3
+driver= sqlite3
+database= db/{{dbName}}_test.sqlite3
 maxConn = 30
 maxIdle = 30
-timeout: 5000`
+timeout= 5000`
 		
 var postgresDatabaseConfigTpl =  
 `[dev]
-driver: postgresql
-encoding: unicode
-database: {{dbName}}_dev
+driver= postgresql
+encoding= unicode
+database= {{dbName}}_dev
 maxConn = 30
 maxIdle = 30
-username: postgres
-password: postgres
+username= postgres
+password= postgres
 
 
 [prod]
 driver: postgresql
-encoding: unicode
-database: {{dbName}}
+encoding= unicode
+database= {{dbName}}
 maxConn = 30
 maxIdle = 30
-username: postgres
-password: postgres
+username= postgres
+password= postgres
 
 
 [test]
 driver: postgresql
-encoding: unicode
-database: {{dbName}}_test
+encoding= unicode
+database= {{dbName}}_test
 maxConn = 30
 maxIdle = 30
-username: postgres
-password: postgres`
+username= postgres
+password= postgres`
 
