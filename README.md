@@ -20,37 +20,37 @@
   *Add following code in your database.conf file and change your database configuration.*
    
       [dev]
-	driver: mysql
-	encoding: utf8
-	database: example_dev
+	driver= mysql
+	encoding= utf8
+	database= example_dev
 	maxConn = 30
 	maxIdle = 30
-	username: root
-	password:
+	username= root
+	password=
 	host = 127.0.0.1
 	port = 3306
 	
 	
 	[prod]
-	driver: mysql
-	encoding: utf8
-	database: example_dev
+	driver= mysql
+	encoding= utf8
+	database= example_dev
 	maxConn = 30
 	maxIdle = 30
-	username: root
-	password:
+	username= root
+	password=
 	host = 127.0.0.1
 	port = 3306
 	
 	
 	[test]
-	driver: mysql
-	encoding: utf8
-	database: example_dev	
+	driver= mysql
+	encoding= utf8
+	database= example_dev	
 	maxConn = 30
 	maxIdle = 30
-	username: root
-	password:
+	username= root
+	password=
 	host = 127.0.0.1
 	port = 3306
 	  
