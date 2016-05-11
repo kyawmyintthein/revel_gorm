@@ -155,31 +155,31 @@ timeout: 5000`
 		
 var postgresDatabaseConfigTpl =  
 `[dev]
-driver: postgres
+driver: postgresql
 encoding: unicode
 database: {{dbName}}_dev
 maxConn = 30
 maxIdle = 30
-username: root
-password:
+username: postgres
+password: postgres
 
 
 [prod]
-driver: postgres
+driver: postgresql
 encoding: unicode
 database: {{dbName}}
 maxConn = 30
 maxIdle = 30
-username: root
-password:
+username: postgres
+password: postgres
 
 
 [test]
-driver: postgres
+driver: postgresql
 encoding: unicode
 database: {{dbName}}_test
 maxConn = 30
 maxIdle = 30
-username: root
-password:`
+username: postgres
+password: postgres`
 
