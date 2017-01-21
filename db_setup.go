@@ -181,10 +181,10 @@ func InitDB(){
     switch revel.RunMode{
     case "dev":
         driver, _ =  config.String("dev", "driver");
-        dbname, _ =  config.String("dev", "driver");
+        dbname, _ =  config.String("dev", "database");
     case "prod":
         driver, _ =  config.String("prod", "driver");
-        dbname, _ =  config.String("prod", "driver");
+        dbname, _ =  config.String("prod", "database");
     default:
         panic(errors.New("Invalid RunMode"))
     }
