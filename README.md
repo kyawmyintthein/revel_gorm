@@ -11,7 +11,7 @@
 
 ## Usage
 #### Setup database config
-    revel_gorm db:config -driver=[mysql,postgres,sqlite]
+    revel_gorm db:config -driver=[mysql,postgres,sqlite] -dbname=[dbfilename]
 
 #### Setup database 
     revel_gorm db:setup 
